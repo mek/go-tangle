@@ -29,8 +29,8 @@ func Err(args ...interface{}) {
 
 // Opens a file and runs a function.
 // Will open the file (params) given by OpenFileParams and if
-// successful will use the open file pointer (fp) to call the 
-// function (block). 
+// successful will use the open file pointer (fp) to call the
+// function (block).
 func WithOpenFile(params OpenFileParams, block func(*os.File)) {
 	if params.Fname == "" {
 		Err("no file name given to WithOpenFile, exiting")
@@ -48,8 +48,17 @@ func WithOpenFile(params OpenFileParams, block func(*os.File)) {
 		os.Exit(15)
 	}
 	defer fp.Close()
-
+	fileInfo, err := fp.Stat()
+	if err != nil {
+		Err("Error getting file info ", err)
+		os.Exit(15)
+	}
+	if fileInfo.IsDir() {
+		Err(params.Fname, " is a file directory, exiting")
+		os.Exit(15)
+	}
 	block(fp)
+
 }
 
 // Add string value to a map of strings

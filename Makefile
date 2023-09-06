@@ -2,6 +2,7 @@ default:
 	@echo Nothing is default
 
 go-tangle: go-tangle.go go-tangle.md
+	@go fmt . 
 	@go vet .
 	@go build .
 
