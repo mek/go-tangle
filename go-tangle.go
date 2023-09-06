@@ -1,3 +1,4 @@
+// A Go version of mek's tangle, based on noweb
 package main
 
 import (
@@ -9,12 +10,16 @@ import (
 	"strings"
 )
 
+// A structure for open files
 type OpenFileParams struct {
-	Fname string
-	Mode  int
-	Perm  os.FileMode
+	Fname string      // file name to open
+	Mode  int         // os.O_READONLY, etc. (read, write, append, etc.)
+	Perm  os.FileMode // The file mode for the file (0400, 0644, etc.)
 }
 
+// output to standard error
+// Will go though each arg and write, without a new line, to standard error.
+// Will write an new line after the args are written.
 func Err(args ...interface{}) {
 	for _, arg := range args {
 		fmt.Fprint(os.Stderr, arg)
@@ -22,6 +27,10 @@ func Err(args ...interface{}) {
 	fmt.Fprintln(os.Stderr)
 }
 
+// Opens a file and runs a function.
+// Will open the file (params) given by OpenFileParams and if
+// successful will use the open file pointer (fp) to call the 
+// function (block). 
 func WithOpenFile(params OpenFileParams, block func(*os.File)) {
 	if params.Fname == "" {
 		Err("no file name given to WithOpenFile, exiting")
@@ -36,12 +45,16 @@ func WithOpenFile(params OpenFileParams, block func(*os.File)) {
 	fp, err := os.OpenFile(params.Fname, params.Mode, params.Perm)
 	if err != nil {
 		Err("Could not open file ", params.Fname, " error: ", err)
+		os.Exit(15)
 	}
 	defer fp.Close()
 
 	block(fp)
 }
 
+// Add string value to a map of strings
+// If there is already a value in the string, append a newline
+// to the end of the current string and then add the value.
 func AddArrayValue(arr map[string]string, key string, value string) {
 	if _, exists := arr[key]; exists {
 		arr[key] += "\n" + value
@@ -50,6 +63,9 @@ func AddArrayValue(arr map[string]string, key string, value string) {
 	}
 }
 
+// Check if the chunk exists, if it does not err, exit with error.
+// If it does exists, print out the value for the chuck, recusily
+// checking to see if other chunks are in the value.
 func ExpandChunks(arr map[string]string, chunk string, indent string) {
 	if _, exists := arr[chunk]; !exists {
 		Err("could not find chunk ", chunk)
@@ -74,6 +90,7 @@ func ExpandChunks(arr map[string]string, chunk string, indent string) {
 	}
 }
 
+// main function
 func main() {
 	var requestedChunk string
 	chunks := make(map[string]string)
@@ -85,7 +102,7 @@ func main() {
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
-		Err("only allowed one filename, you have %d\n", len(flag.Args()))
+		Err(fmt.Sprintf("only allowed one filename, you have %d", len(flag.Args())))
 		flag.Usage()
 		os.Exit(1)
 	}
