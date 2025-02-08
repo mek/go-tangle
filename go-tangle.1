@@ -2,3 +2,50 @@
 .SH NAME
 go-tangle \- read file, parse for LP tangles, and print out requested tangle.
 .SH SYNOPSIS
+.B go-tangle 
+[
+.B -R 
+.I tangle
+] 
+.I file
+.SH DESCRIPTION
+.I
+Go-tangle
+reads a 
+.I file
+and parse out tangle chunks. It then looks for the requested
+tangle chuck and outputs it. If a requested tangle chunk is not 
+given, the default is to look for a tangle chuck named 
+.I *
+and if the request tangle is not found it will print a list of all 
+the tangle chunks found.
+
+The requested tangle is output to standard out.
+.IP
+.L
+go-tangle -R my_bash_script.sh my_bash_script_doc.md
+.LP
+prints the tangle
+.I my_bash_script.sh
+found in
+.I my_bash_script_doc.md.
+.PP
+A tangle chunk is defined in a file, by starting a chunk with
+.B <<TANGLE_CHUNK_NAME>>=
+then putting in the text closing the tangle with
+.B @
+as the only charactor on the line.
+.PP
+.L
+.PD 0
+<<bash.script.sh>>=
+.TP 3
+#!/bin/sh
+.TP 3
+echo "hello, world"
+.TP 3
+exit 0
+.TP 3
+@
+.PD
+.PP
