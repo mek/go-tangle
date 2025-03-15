@@ -1,5 +1,12 @@
 A Go version of mek's tangle, based on noweb
 
+CONSTANTS
+
+const (
+	TANGLE = iota // code
+	WEAVE         // documentation
+)
+
 FUNCTIONS
 
 func AddArrayValue(arr map[string]string, key string, value string)
@@ -16,6 +23,7 @@ func ExpandChunks(arr map[string]string, chunk string, indent string)
     exists, print out the value for the chuck, recusily checking to see if other
     chunks are in the value.
 
+func ProcessFile(fp *os.File)
 func WithOpenFile(params OpenFileParams, block func(*os.File))
     Opens a file and runs a function. Will open the file (params) given by
     OpenFileParams and if successful will use the open file pointer (fp) to call

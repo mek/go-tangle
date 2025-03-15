@@ -99,57 +99,74 @@ func ExpandChunks(arr map[string]string, chunk string, indent string) {
 	}
 }
 
+func ProcessFile(fp *os.File) {
+
+	lineno := 0
+	scanner := bufio.NewScanner(fp)
+	inChunk := false
+	var chunk string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		lineno++
+		if !inChunk {
+			if re := regexp.MustCompile(`(^<<)(.*)(>>=$)`); re.MatchString(line) {
+				submatches := re.FindStringSubmatch(line)
+				chunk = submatches[2]
+				inChunk = true
+				continue
+			}
+		} else {
+			if re := regexp.MustCompile(`^(@).*(% def)?$`); re.MatchString(line) {
+				inChunk = false
+				chunk = ""
+				continue
+			}
+			AddArrayValue(chunks, chunk, line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		Err(err)
+	}
+}
+
+var chunks = make(map[string]string)
+
+const (
+	TANGLE = iota // code
+	WEAVE         // documentation
+)
+
 // main function
 func main() {
 	var requestedChunk string
-	chunks := make(map[string]string)
+	var tangle bool
+	var weave bool
 
 	flag.Usage = func() {
-		Err(os.Args[0], " -R <chuck to extract> filename")
+		Err(os.Args[0], " [-t] [-w] -R <chuck to extract> filename")
 	}
 	flag.StringVar(&requestedChunk, "R", "*", "Expect Chunk")
+	flag.BoolVar(&tangle, "t", true, "Tangle")
+	flag.BoolVar(&weave, "w", false, "Weave")
+
 	flag.Parse()
 
-	if len(flag.Args()) != 1 {
-		Err(fmt.Sprintf("only allowed one filename, you have %d", len(flag.Args())))
+	if tangle && weave {
+		Err("Cannot specify both -t and -w")
 		flag.Usage()
 		os.Exit(1)
 	}
-	fileName := flag.Arg(0)
 
-	curFile := OpenFileParams{Fname: fileName}
+	if len(flag.Args()) != 1 {
+		Err(fmt.Sprintf("one filename expected, you have %d", len(flag.Args())))
+		flag.Usage()
+		os.Exit(1)
+	}
+	// fileName := flag.Arg(0)
+	// curFile := OpenFileParams{Fname: fileName}
 
-	lineno := 0
-	WithOpenFile(curFile, func(fp *os.File) {
-		scanner := bufio.NewScanner(fp)
-		inChunk := false
-		var chunk string
-
-		for scanner.Scan() {
-			line := scanner.Text()
-			lineno++
-			if !inChunk {
-				if re := regexp.MustCompile(`(^<<)(.*)(>>=$)`); re.MatchString(line) {
-					submatches := re.FindStringSubmatch(line)
-					chunk = submatches[2]
-					inChunk = true
-					AddArrayValue(chunks, chunk, fmt.Sprintf("# %s lineno %d", fileName, lineno))
-					continue
-				}
-			} else {
-				if re := regexp.MustCompile(`^(@).*(% def)?$`); re.MatchString(line) {
-					inChunk = false
-					chunk = ""
-					continue
-				}
-				AddArrayValue(chunks, chunk, line)
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			Err(err)
-		}
-	})
-
+	WithOpenFile(OpenFileParams{Fname: flag.Arg(0)}, ProcessFile)
 	ExpandChunks(chunks, requestedChunk, "")
 
 }
